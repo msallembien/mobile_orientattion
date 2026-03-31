@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'parcours_list.dart';
-
+import 'prof_page.dart';
 class HomePage extends StatefulWidget {
   final String token;
 
@@ -92,7 +92,14 @@ class _HomePageState extends State<HomePage> {
                 title: const Text("Scanner un QR Code"),
                 subtitle: const Text("Valider un beacon"),
                 onTap: () {
-                  // future fonction
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProfPage(
+                        token: widget.token, // 🔹 Passe ton JWT ici
+                      ),
+                    ),
+                  );
                 },
               ),
             ),
