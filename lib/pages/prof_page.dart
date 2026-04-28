@@ -6,7 +6,7 @@ import 'package:geolocator/geolocator.dart';
 
 class ProfPage extends StatefulWidget {
   final String token;
-  const ProfPage({Key? key, required this.token}) : super(key: key);
+  const ProfPage({super.key, required this.token});
 
   @override
   _ProfPageState createState() => _ProfPageState();
@@ -61,7 +61,9 @@ class _ProfPageState extends State<ProfPage> {
     try {
       Uri url = Uri.parse(qrData);
 
-      final response = await http.post(
+      final client = http.Client();
+
+      final response = await client.post(
         url,
         headers: {
           'Content-Type': 'application/json',

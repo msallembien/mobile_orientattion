@@ -22,7 +22,96 @@ class StudentPage extends StatefulWidget {
 class _StudentPageState extends State<StudentPage> {
   bool _isScanning = true;
   final String baseUrl = 'https://irina-pestersome-tolerably.ngrok-free.dev';
+  bool _hasStarted = false;
+  Set<String> _scannedBeacons = {};
+  Future<void> _endRace() async {
+    final url = Uri.parse('$baseUrl/api/runners/${widget.runnerId}');
 
+    await http.patch(
+      url,
+      headers: {
+        'Content-Type': 'application/merge-patch+json',
+      },
+      body: json.encode({
+        'date_end': DateTime.now().toIso8601String(),
+      }),
+    );
+  }
+  Future<void> _startRace() async {
+    final url = Uri.parse('$baseUrl/api/runners/${widget.runnerId}');
+
+    await http.patch(
+      url,
+      headers: {
+        'Content-Type': 'application/merge-patch+json',
+      },
+      body: json.encode({
+        'date_start': DateTime.now().toIso8601String(),
+      }),
+    );
+  }
+  Future<void> _handleScan(String beaconUrlRaw) async {
+    try {
+      final beaconId = extractBeaconId(beaconUrlRaw);
+
+    final beaconRes = await http.get(
+      Uri.parse('$baseUrl/api/beacons/$beaconId'),
+    );
+
+      if (beaconRes.statusCode != 200) {
+        _showMessage("Balise inconnue", isError: true);
+        return;
+      }
+
+      final beaconData = json.decode(beaconRes.body);
+      final status = beaconData['status'];
+
+      if (!_hasStarted) {
+        if (status != 'depart') {
+          _showMessage("Tu dois commencer par le départ !");
+          return;
+        }
+
+        await _startRace();
+        _hasStarted = true;
+
+        _scannedBeacons.add(beaconId);
+
+        _showMessage("Course commencée !");
+        return;
+      }
+
+      // 🚫 empêcher double scan
+      if (_scannedBeacons.contains(beaconId)) {
+        _showMessage("Balise déjà scannée !");
+        return;
+      }
+
+      // 🏁 GESTION ARRIVÉE
+      if (status == 'arrivee') {
+        // ⚠️ ici tu dois adapter selon ton parcours
+        // minimum = au moins 2 balises (départ + 1 autre)
+
+        if (_scannedBeacons.length < 2) {
+          _showMessage("Tu dois scanner toutes les balises avant l'arrivée !");
+          return;
+        }
+
+        await _endRace();
+        _showMessage("Course terminée !");
+        return;
+      }
+
+      // ✅ balise normale
+      _scannedBeacons.add(beaconId);
+      await _logScan(beaconId);
+
+      await _logScan(beaconId);
+
+    } catch (e) {
+      _showMessage("Erreur réseau", isError: true);
+    }
+  }
   void _showMessage(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -86,11 +175,9 @@ class _StudentPageState extends State<StudentPage> {
 
                         if (beaconRaw != null && _isScanning) {
                           // ✅ EXTRACTION ID
-                          final beaconId = extractBeaconId(beaconRaw);
-
                           setState(() => _isScanning = false);
 
-                          _logScan(beaconId).then((_) {
+                          _handleScan(beaconRaw).then((_) {
                             Future.delayed(const Duration(seconds: 2), () {
                               if (mounted) {
                                 setState(() => _isScanning = true);
