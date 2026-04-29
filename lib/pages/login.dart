@@ -30,7 +30,7 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     final url = Uri.parse(
-      'https://irina-pestersome-tolerably.ngrok-free.dev/api/login_check',
+      'https://std45.beaupeyrat.com/api/login_check',
     );
 
     final response = await http.post(
@@ -69,7 +69,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final baseUrl =
-          'https://irina-pestersome-tolerably.ngrok-free.dev';
+          'https://std45.beaupeyrat.com';
 
       // -----------------------
       // GET RACES
@@ -115,7 +115,7 @@ class _LoginPageState extends State<LoginPage> {
         headers: {'Content-Type': 'application/ld+json'},
         body: json.encode({
             'name': _pseudoController.text.trim(),
-            'id_race_id': race['@id'], // <-- ici on envoie l'IRI de la course
+            'id_race': race['@id'], // <-- ici on envoie l'IRI de la course
         }),
       );
 

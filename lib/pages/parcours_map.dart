@@ -33,7 +33,7 @@ class _ParcoursMapPageState extends State<ParcoursMapPage> {
     try {
       final response = await http.get(
         Uri.parse(
-            "https://irina-pestersome-tolerably.ngrok-free.dev/api/beacons?map=${widget.parcoursId}"),
+            "https://std45.beaupeyrat.com/api/beacons?map=${widget.parcoursId}"),
         headers: {
           "Authorization": "Bearer ${widget.token}",
         },

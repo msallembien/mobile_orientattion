@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:geolocator/geolocator.dart';
+import 'dart:async';
 
 class StudentPage extends StatefulWidget {
   final int runnerId;
@@ -21,9 +23,54 @@ class StudentPage extends StatefulWidget {
 
 class _StudentPageState extends State<StudentPage> {
   bool _isScanning = true;
-  final String baseUrl = 'https://irina-pestersome-tolerably.ngrok-free.dev';
+  Timer? _trackingTimer;
+  final String baseUrl = 'https://std45.beaupeyrat.com';
   bool _hasStarted = false;
   Set<String> _scannedBeacons = {};
+  void _startTracking() {
+    _trackingTimer?.cancel();
+
+    _trackingTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      try {
+        LocationPermission permission = await Geolocator.checkPermission();
+
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+
+        if (permission == LocationPermission.denied ||
+            permission == LocationPermission.deniedForever) {
+          return;
+        }
+
+        final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+
+        final url = Uri.parse('$baseUrl/api/scan_logs');
+
+        await http.post(
+          url,
+          headers: {'Content-Type': 'application/ld+json'},
+          body: json.encode({
+            'scan_at': DateTime.now().toIso8601String(),
+
+            'id_runner': '/api/runners/${widget.runnerId}',
+
+            // 👉 PAS DE BALISE
+            'id_beacon': null,
+
+            'latitude': position.latitude.toString(),
+            'longitude': position.longitude.toString(),
+
+            'is_valid': true,
+          }),
+        );
+      } catch (e) {
+        // rien → sinon spam toutes les 10s
+      }
+    });
+  }
   Future<void> _endRace() async {
     final url = Uri.parse('$baseUrl/api/runners/${widget.runnerId}');
 
@@ -76,6 +123,8 @@ class _StudentPageState extends State<StudentPage> {
         _hasStarted = true;
 
         _scannedBeacons.add(beaconId);
+        await _logScan(beaconId);
+        _startTracking();
 
         _showMessage("Course commencée !");
         return;
@@ -89,27 +138,32 @@ class _StudentPageState extends State<StudentPage> {
 
       // 🏁 GESTION ARRIVÉE
       if (status == 'arrivee') {
-        // ⚠️ ici tu dois adapter selon ton parcours
-        // minimum = au moins 2 balises (départ + 1 autre)
-
         if (_scannedBeacons.length < 2) {
           _showMessage("Tu dois scanner toutes les balises avant l'arrivée !");
           return;
         }
 
         await _endRace();
+        await _logScan(beaconId);
+
+        _trackingTimer?.cancel(); // ✅ STOP tracking
+
         _showMessage("Course terminée !");
         return;
       }
 
       // ✅ balise normale
       _scannedBeacons.add(beaconId);
-      await _logScan(beaconId);
 
       await _logScan(beaconId);
 
     } catch (e) {
       _showMessage("Erreur réseau", isError: true);
+    }
+    @override
+    void dispose() {
+      _trackingTimer?.cancel();
+      super.dispose();
     }
   }
   void _showMessage(String message, {bool isError = false}) {
@@ -132,28 +186,49 @@ class _StudentPageState extends State<StudentPage> {
     final url = Uri.parse('$baseUrl/api/scan_logs');
 
     try {
+      // 📍 récupérer la position
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        _showMessage("Permission GPS refusée", isError: true);
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/ld+json'},
         body: json.encode({
           'scan_at': DateTime.now().toIso8601String(),
 
-          // ✅ FORMAT ATTENDU PAR TON API
+          // 🔗 relations API
           'id_runner': '/api/runners/${widget.runnerId}',
           'id_beacon': '/api/beacons/$beaconId',
+
+          // 📍 NOUVEAU
+          'latitude': position.latitude.toString(),
+          'longitude': position.longitude.toString(),
+
+          // ✅ validation
+          'is_valid': true,
         }),
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         _showMessage("Balise $beaconId validée !");
       } else {
-        _showMessage(
-          "Erreur API (${response.statusCode})",
-          isError: true,
-        );
+        _showMessage("Erreur API (${response.statusCode})", isError: true);
       }
     } catch (e) {
-      _showMessage("Erreur réseau", isError: true);
+      _showMessage("Erreur GPS ou réseau", isError: true);
     }
   }
 
