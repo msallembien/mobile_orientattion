@@ -24,7 +24,7 @@ class StudentPage extends StatefulWidget {
 class _StudentPageState extends State<StudentPage> {
   bool _isScanning = true;
   Timer? _trackingTimer;
-  final String baseUrl = 'https://std45.beaupeyrat.com';
+  final String baseUrl = 'https://irina-pestersome-tolerably.ngrok-free.dev';
   bool _hasStarted = false;
   Set<String> _scannedBeacons = {};
   void _startTracking() {

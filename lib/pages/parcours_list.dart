@@ -25,7 +25,7 @@ class _ParcoursListPageState extends State<ParcoursListPage> {
   Future fetchMaps() async {
     try {
       final response = await http.get(
-        Uri.parse("https://std45.beaupeyrat.com/api/maps"),
+        Uri.parse("https://irina-pestersome-tolerably.ngrok-free.dev/api/maps"),
         headers: {
           "Authorization": "Bearer ${widget.token}"
         },

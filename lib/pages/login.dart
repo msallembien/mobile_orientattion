@@ -30,7 +30,7 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     final url = Uri.parse(
-      'https://std45.beaupeyrat.com/api/login_check',
+      'https://irina-pestersome-tolerably.ngrok-free.dev/api/login_check',
     );
 
     final response = await http.post(
@@ -69,7 +69,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final baseUrl =
-          'https://std45.beaupeyrat.com';
+          'https://irina-pestersome-tolerably.ngrok-free.dev';
 
       // -----------------------
       // GET RACES
