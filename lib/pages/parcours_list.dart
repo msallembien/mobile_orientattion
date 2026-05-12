@@ -13,7 +13,7 @@ class ParcoursListPage extends StatefulWidget {
 }
 
 class _ParcoursListPageState extends State<ParcoursListPage> {
-  List maps = [];
+  List<Map<String, dynamic>> maps = [];
   bool loading = true;
 
   @override
@@ -22,28 +22,22 @@ class _ParcoursListPageState extends State<ParcoursListPage> {
     fetchMaps();
   }
 
-  Future fetchMaps() async {
+  Future<void> fetchMaps() async {
     try {
       final response = await http.get(
         Uri.parse("https://irina-pestersome-tolerably.ngrok-free.dev/api/maps"),
-        headers: {
-          "Authorization": "Bearer ${widget.token}"
-        },
+        headers: {"Authorization": "Bearer ${widget.token}"},
       );
-      final data = json.decode(response.body);
-      debugPrint("Réponse API: $data");
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-
-        // Vérifie si 'maps' existe et est bien une liste
-        final List fetchedMaps = (data['member'] ?? []) as List;
+        final List fetchedMaps =
+            (data['member'] ?? data['hydra:member'] ?? []) as List;
 
         setState(() {
-          maps = fetchedMaps;
+          maps = fetchedMaps.cast<Map<String, dynamic>>();
           loading = false;
         });
       } else {
-        // Gestion d'erreur simple
         setState(() {
           maps = [];
           loading = false;
@@ -68,34 +62,56 @@ class _ParcoursListPageState extends State<ParcoursListPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Parcours")),
-      body: ListView.builder(
-        itemCount: maps.length,
-        itemBuilder: (context, index) {
-          final m = maps[index];
+      appBar: AppBar(title: const Text("Parcours disponibles")),
+      body: maps.isEmpty
+          ? const Center(
+              child: Text("Aucun parcours disponible pour le moment."),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: maps.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final m = maps[index];
+                final parcoursId = m["id"] ??
+                    int.tryParse(m["@id"].toString().split("/").last) ??
+                    0;
 
-          // Assure-toi que les champs existent
-
-          return ListTile(
-            title: Text(m["name_map"] ?? "Nom inconnu"),
-            subtitle: Text("Description : ${m["description"] ?? 'Aucune'}"),
-            trailing: const Icon(Icons.map),
-            onTap: () {
-              final parcoursId = m["id"] ?? int.tryParse(m["@id"].toString().split("/").last) ?? 0;
-
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ParcoursMapPage(
-                    parcoursId: parcoursId,
-                    token: widget.token,
+                return Card(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    leading: CircleAvatar(
+                      child: Text("${index + 1}"),
+                    ),
+                    title: Text(
+                      m["name_map"] ?? "Nom inconnu",
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        m["description"] ?? "Aucune description",
+                      ),
+                    ),
+                    trailing: const Icon(Icons.map_outlined),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ParcoursMapPage(
+                            parcoursId: parcoursId,
+                            token: widget.token,
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                ),
-              );
-            },
-          );
-        },
-      ),
+                );
+              },
+            ),
     );
   }
 }

@@ -13,8 +13,14 @@ class ProfPage extends StatefulWidget {
 }
 
 class _ProfPageState extends State<ProfPage> {
-  MobileScannerController cameraController = MobileScannerController();
+  final MobileScannerController cameraController = MobileScannerController();
   bool isProcessing = false;
+
+  @override
+  void dispose() {
+    cameraController.dispose();
+    super.dispose();
+  }
 
   Future<Position?> _getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -97,7 +103,7 @@ class _ProfPageState extends State<ProfPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Prof - Scanner une balise'),
+        title: const Text('Espace prof'),
         actions: [
           IconButton(
             icon: const Icon(Icons.flip_camera_ios),
@@ -105,28 +111,74 @@ class _ProfPageState extends State<ProfPage> {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          MobileScanner(
-            controller: cameraController,
-            onDetect: (capture) {
-              for (final barcode in capture.barcodes) {
-                final code = barcode.rawValue; // Correct pour la version récente
-                if (code != null) {
-                  sendBeaconData(code);
-                  break; // on envoie une seule fois par scan
-                }
-              }
-            },
-          ),
-          if (isProcessing)
-            const Positioned.fill(
-              child: ColoredBox(
-                color: Colors.black45,
-                child: Center(child: CircularProgressIndicator()),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(14),
+                child: Text(
+                  "Scannez un QR code de balise pour enregistrer sa position GPS.",
+                ),
               ),
             ),
-        ],
+            const SizedBox(height: 12),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Stack(
+                  children: [
+                    MobileScanner(
+                      controller: cameraController,
+                      onDetect: (capture) {
+                        for (final barcode in capture.barcodes) {
+                          final code = barcode.rawValue;
+                          if (code != null) {
+                            sendBeaconData(code);
+                            break;
+                          }
+                        }
+                      },
+                    ),
+                    Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: 16,
+                      child: Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.qr_code_scanner,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              const SizedBox(width: 10),
+                              const Expanded(
+                                child: Text(
+                                  "Cadrez le QR code dans la zone de scan.",
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (isProcessing)
+                      const Positioned.fill(
+                        child: ColoredBox(
+                          color: Colors.black45,
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -23,6 +23,15 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _isProfessor = true;
 
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    _codeController.dispose();
+    _pseudoController.dispose();
+    super.dispose();
+  }
+
   Future<void> _login() async {
     setState(() {
       _loading = true;
@@ -46,7 +55,7 @@ class _LoginPageState extends State<LoginPage> {
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      final token = data['token'];
+      final token = (data['token'] as String).trim();
 
       Navigator.pushReplacement(
         context,
@@ -86,9 +95,8 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       final decoded = json.decode(raceResponse.body);
-
-      // ⚠️ API Platform retourne souvent { "hydra:member": [...] }
-      final List races = decoded['member'] ?? [];
+      final List races =
+          (decoded['member'] ?? decoded['hydra:member'] ?? []) as List;
 
       final race = races.cast<Map<String, dynamic>?>().firstWhere(
             (r) =>
@@ -153,76 +161,201 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Connexion')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ChoiceChip(
-                  label: const Text("Prof"),
-                  selected: _isProfessor,
-                  onSelected: (_) {
-                    setState(() => _isProfessor = true);
-                  },
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Mobile Orientation',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Connectez-vous pour accéder à votre espace.',
+                        style: TextStyle(color: colors.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () {
+                                setState(() => _isProfessor = true);
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 14,
+                                ),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  color: _isProfessor
+                                      ? colors.primaryContainer
+                                      : colors.surface,
+                                  border: Border.all(
+                                    color: _isProfessor
+                                        ? colors.primary
+                                        : colors.outlineVariant,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.school_outlined,
+                                      size: 20,
+                                      color: _isProfessor
+                                          ? colors.onPrimaryContainer
+                                          : colors.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Professeur',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: _isProfessor
+                                            ? colors.onPrimaryContainer
+                                            : colors.onSurface,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () {
+                                setState(() => _isProfessor = false);
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 14,
+                                ),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  color: !_isProfessor
+                                      ? colors.primaryContainer
+                                      : colors.surface,
+                                  border: Border.all(
+                                    color: !_isProfessor
+                                        ? colors.primary
+                                        : colors.outlineVariant,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.directions_run_outlined,
+                                      size: 20,
+                                      color: !_isProfessor
+                                          ? colors.onPrimaryContainer
+                                          : colors.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Élève',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: !_isProfessor
+                                            ? colors.onPrimaryContainer
+                                            : colors.onSurface,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      if (_isProfessor) ...[
+                        TextField(
+                          controller: _usernameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Nom d\'utilisateur',
+                            prefixIcon: Icon(Icons.person_outline),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        TextField(
+                          controller: _passwordController,
+                          decoration: const InputDecoration(
+                            labelText: 'Mot de passe',
+                            prefixIcon: Icon(Icons.lock_outline),
+                          ),
+                          obscureText: true,
+                        ),
+                      ] else ...[
+                        TextField(
+                          controller: _codeController,
+                          decoration: const InputDecoration(
+                            labelText: 'Code de la course',
+                            prefixIcon: Icon(Icons.qr_code_2),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        TextField(
+                          controller: _pseudoController,
+                          decoration: const InputDecoration(
+                            labelText: 'Pseudo',
+                            prefixIcon: Icon(Icons.badge_outlined),
+                          ),
+                        ),
+                      ],
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 14),
+                        Text(
+                          _errorMessage!,
+                          style: TextStyle(
+                            color: colors.error,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 18),
+                      ElevatedButton.icon(
+                        onPressed: _loading
+                            ? null
+                            : _isProfessor
+                                ? _login
+                                : _loginStudent,
+                        icon: _loading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Icon(_isProfessor ? Icons.login : Icons.flag_outlined),
+                        label: Text(_isProfessor ? 'Se connecter' : 'Rejoindre la course'),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 10),
-                ChoiceChip(
-                  label: const Text("Élève"),
-                  selected: !_isProfessor,
-                  onSelected: (_) {
-                    setState(() => _isProfessor = false);
-                  },
-                ),
-              ],
+              ),
             ),
-            const SizedBox(height: 20),
-            if (_isProfessor) ...[
-              TextField(
-                controller: _usernameController,
-                decoration:
-                    const InputDecoration(labelText: 'Username'),
-              ),
-              TextField(
-                controller: _passwordController,
-                decoration:
-                    const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-              ),
-            ],
-            if (!_isProfessor) ...[
-              TextField(
-                controller: _codeController,
-                decoration: const InputDecoration(
-                    labelText: 'Code de la course'),
-              ),
-              TextField(
-                controller: _pseudoController,
-                decoration:
-                    const InputDecoration(labelText: 'Pseudo'),
-              ),
-            ],
-            const SizedBox(height: 20),
-            if (_errorMessage != null)
-              Text(_errorMessage!,
-                  style: const TextStyle(color: Colors.red)),
-            ElevatedButton(
-              onPressed: _loading
-                  ? null
-                  : _isProfessor
-                      ? _login
-                      : _loginStudent,
-              child: _loading
-                  ? const CircularProgressIndicator()
-                  : Text(_isProfessor
-                      ? 'Login Prof'
-                      : 'Rejoindre'),
-            ),
-          ],
+          ),
         ),
       ),
     );

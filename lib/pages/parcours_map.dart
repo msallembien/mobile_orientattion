@@ -74,19 +74,17 @@ class _ParcoursMapPageState extends State<ParcoursMapPage> {
         );
       }
 
-      // Polyline pour relier les beacons
       if (points.isNotEmpty) {
         polylines.add(
           Polyline(
             polylineId: const PolylineId("parcours"),
             points: points,
             width: 4,
-            color: Colors.blue,
+            color: Theme.of(context).colorScheme.primary,
           ),
         );
       }
 
-      // Définir initialPosition une seule fois pour éviter rebuild infini
       if (!mapLoaded) {
         setState(() {
           initialPosition =
@@ -108,14 +106,40 @@ class _ParcoursMapPageState extends State<ParcoursMapPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Carte parcours")),
+      appBar: AppBar(title: const Text("Carte du parcours")),
       body: initialPosition == null
           ? const Center(child: CircularProgressIndicator())
-          : GoogleMap(
-              initialCameraPosition:
-                  CameraPosition(target: initialPosition!, zoom: 13),
-              markers: markers,
-              polylines: polylines,
+          : Padding(
+              padding: const EdgeInsets.all(12),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Stack(
+                  children: [
+                    GoogleMap(
+                      initialCameraPosition:
+                          CameraPosition(target: initialPosition!, zoom: 13),
+                      markers: markers,
+                      polylines: polylines,
+                    ),
+                    Positioned(
+                      top: 12,
+                      left: 12,
+                      child: Card(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          child: Text(
+                            "${markers.length} balise(s)",
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
     );
   }
